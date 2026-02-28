@@ -1,0 +1,30 @@
+services:
+  server:
+    cpus: "2.0"
+    mem_limit: 2g
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2g
+    environment:
+      DOTNET_TieredPGO: "1"
+      DOTNET_gcServer: "1"
+    tmpfs:
+      - /app/log:size=256m
+
+  client:
+    cpus: "2.0"
+    mem_limit: 2g
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2g
+    environment:
+      FIX_CLIENT_INITIATOR_CONFIG: fix-client-initiator-docker.cfg
+      SERVER_HTTP_BASE: http://server:8081
+      DOTNET_TieredPGO: "1"
+      DOTNET_gcServer: "1"
+    tmpfs:
+      - /app/log:size=256m

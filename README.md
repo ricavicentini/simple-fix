@@ -100,6 +100,23 @@ No `Oms.Server`:
 
 `docker compose up --build`
 
+### Perfil de benchmark (docker)
+
+Para reduzir overhead durante benchmark, existe um override:
+
+- `docker-compose.benchmark.yml`
+
+Ajustes aplicados nesse perfil:
+
+- CPU por container: `2.0`
+- `DOTNET_TieredPGO=1`
+- `DOTNET_gcServer=1`
+- pasta de log FIX em `tmpfs` (`/app/log`) para reduzir I/O em disco
+
+Subir com perfil de benchmark:
+
+`docker compose -f docker-compose.yml -f docker-compose.benchmark.yml up --build -d`
+
 ## Testes unitarios
 
 Projeto: `Oms.Tests`
@@ -126,3 +143,8 @@ Passos:
 2. executar `dotnet run --project Oms.Benchmark`
 
 Saida esperada: total e media de round-trip em ms.
+
+### Resultados medidos
+
+- Local (host): `Avg round-trip: 0,3791 ms`
+- Dockerizado (`docker compose`): `Avg round-trip: 1,2688 ms`
