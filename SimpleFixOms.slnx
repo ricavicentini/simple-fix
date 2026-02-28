@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Oms.Benchmark/Oms.Benchmark.csproj" />
+  <Project Path="Oms.Client/Oms.Client.csproj" />
+  <Project Path="Oms.Server/Oms.Server.csproj" />
+  <Project Path="Oms.Shared/Oms.Shared.csproj" />
+  <Project Path="Oms.Tests/Oms.Tests.csproj" />
+</Solution>

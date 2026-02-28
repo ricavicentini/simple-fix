@@ -1,0 +1,33 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Oms.Server/Dockerfile
+    container_name: oms-server
+    ports:
+      - "5001:5001"
+      - "8081:8081"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2g
+
+  client:
+    build:
+      context: .
+      dockerfile: Oms.Client/Dockerfile
+    container_name: oms-client
+    depends_on:
+      - server
+    environment:
+      FIX_CLIENT_INITIATOR_CONFIG: fix-client-initiator-docker.cfg
+      SERVER_HTTP_BASE: http://server:8081
+    ports:
+      - "5002:5002"
+      - "8080:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2g
