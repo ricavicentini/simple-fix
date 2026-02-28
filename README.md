@@ -8,6 +8,70 @@ Implementacao minima dos requisitos:
   - `GET http://localhost:8080/snapshot` (Client)
   - Client consulta `Server` e devolve snapshot global.
 
+## Arquitetura e racional
+
+### Visao geral
+
+O projeto foi estruturado para separar responsabilidades por camada e reduzir acoplamento:
+
+- `Oms.Shared`: regras de dominio e contratos de aplicacao reutilizaveis.
+- `Oms.Server`: API HTTP + gateway FIX para processamento de ordens.
+- `Oms.Client`: bridge FIX entre usuario externo e servidor OMS.
+- `Oms.Tests`: testes de regras de negocio.
+- `Oms.Benchmark`: medicao simples de latencia round-trip.
+
+### Estrutura por camadas
+
+No `Oms.Shared`:
+
+- `Domain`:
+  - `Enums/OrderSide.cs`
+  - `Entities/LiveOrder.cs`
+- `Application`:
+  - `Contracts/IOrderBook.cs`
+  - `Contracts/IOrderValidator.cs`
+  - `Services/OrderBook.cs`
+  - `Services/DefaultOrderValidator.cs`
+  - `Models/SnapshotOrder.cs`
+
+No `Oms.Server`:
+
+- `Api`:
+  - `DependencyInjection/ServiceCollectionExtensions.cs`
+  - `Endpoints/OrderEndpoints.cs`
+- `Infrastructure`:
+  - `Fix/FixServerGateway.cs`
+- `Program.cs`:
+  - apenas composition root (bootstrap, logging, DI, endpoints).
+
+### Decisoes de design
+
+- Uma classe por arquivo:
+  - facilita manutencao, navegacao e revisao de codigo.
+- Dependencia por interface:
+  - `IOrderBook` e `IOrderValidator` desacoplam consumidores das implementacoes concretas.
+  - simplifica troca de estrategia (ex.: outro validador, persistencia futura) sem quebrar chamadas.
+- Composition root explicito:
+  - regras de injecao em um unico ponto (`AddOmsServer`), evitando configuracao espalhada.
+- Infraestrutura isolada:
+  - classes QuickFIXn ficaram em `Infrastructure/Fix`, separadas de regras de negocio.
+- Thread-safety no book em memoria:
+  - `ConcurrentDictionary` para estado compartilhado.
+  - `Interlocked.Increment` para sequenciamento atomico e prioridade temporal consistente.
+- Snapshot deterministico:
+  - ordenacao por simbolo/lado, preco e sequencia de entrada.
+
+### Trade-offs assumidos
+
+- Estado em memoria (`OrderBook`) para simplicidade e baixa latencia local.
+- Sem persistencia em banco nesta versao.
+- Validacao e matching simplificados para atender os requisitos funcionais atuais.
+
+### Evolucao futura
+
+- Pode ser adotado Event Store para garantir durabilidade e reconstruir o estado do order book via replay de eventos.
+- Para minimizar impacto de performance, a persistencia pode ser feita de forma assincrona (append-only), mantendo o caminho critico de processamento em memoria.
+
 ## Regras implementadas
 
 - Simbolo: `PETR4` ou `VALE3`
@@ -26,6 +90,11 @@ Implementacao minima dos requisitos:
 2. Terminal 1: `dotnet run --project Oms.Server`
 3. Terminal 2: `dotnet run --project Oms.Client`
 4. Snapshot: `curl http://localhost:8080/snapshot`
+
+## Logging
+
+- `Oms.Server` usa `ILogger` com provider de console habilitado.
+- Eventos de sessao FIX continuam em arquivo via `FileLogFactory` (pasta `log` configurada no cfg).
 
 ## Rodar dockerizado
 
