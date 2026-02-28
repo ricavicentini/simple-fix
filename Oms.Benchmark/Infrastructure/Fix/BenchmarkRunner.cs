@@ -17,7 +17,8 @@ public sealed class BenchmarkRunner : MessageCracker, IApplication
 
     public async Task RunAsync()
     {
-        var configPath = Path.Combine(AppContext.BaseDirectory, "benchmark-client.cfg");
+        var configFile = Environment.GetEnvironmentVariable("BENCHMARK_CONFIG") ?? "benchmark-client.cfg";
+        var configPath = Path.Combine(AppContext.BaseDirectory, configFile);
         if (!File.Exists(configPath))
         {
             throw new FileNotFoundException(
@@ -25,7 +26,7 @@ public sealed class BenchmarkRunner : MessageCracker, IApplication
         }
 
         var settings = new SessionSettings(configPath);
-        _initiator = new SocketInitiator(this, new MemoryStoreFactory(), settings, new FileLogFactory(settings), new DefaultMessageFactory());
+        _initiator = new SocketInitiator(this, new MemoryStoreFactory(), settings, CreateLogFactory(settings), new DefaultMessageFactory());
         _initiator.Start();
 
         var timeout = DateTime.UtcNow.AddSeconds(10);
@@ -85,5 +86,22 @@ public sealed class BenchmarkRunner : MessageCracker, IApplication
         {
             tcs.TrySetResult(true);
         }
+    }
+
+    private static ILogFactory CreateLogFactory(SessionSettings settings)
+    {
+        if (IsFixFileLogDisabled())
+        {
+            return new NullLogFactory();
+        }
+
+        return new FileLogFactory(settings);
+    }
+
+    private static bool IsFixFileLogDisabled()
+    {
+        var value = Environment.GetEnvironmentVariable("FIX_DISABLE_FILE_LOG");
+        return string.Equals(value, "1", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
     }
 }

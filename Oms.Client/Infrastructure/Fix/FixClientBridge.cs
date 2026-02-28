@@ -26,14 +26,14 @@ public sealed class FixClientBridge(ILogger<FixClientBridge> logger) : MessageCr
             this,
             new MemoryStoreFactory(),
             acceptorSettings,
-            new FileLogFactory(acceptorSettings),
+            CreateLogFactory(acceptorSettings),
             new DefaultMessageFactory());
 
         _serverInitiator = new SocketInitiator(
             this,
             new MemoryStoreFactory(),
             initiatorSettings,
-            new FileLogFactory(initiatorSettings),
+            CreateLogFactory(initiatorSettings),
             new DefaultMessageFactory());
 
         _externalAcceptor.Start();
@@ -134,5 +134,22 @@ public sealed class FixClientBridge(ILogger<FixClientBridge> logger) : MessageCr
         report.SetField(new Text(reason));
 
         Session.SendToTarget(report, externalSession);
+    }
+
+    private static ILogFactory CreateLogFactory(SessionSettings settings)
+    {
+        if (IsFixFileLogDisabled())
+        {
+            return new NullLogFactory();
+        }
+
+        return new FileLogFactory(settings);
+    }
+
+    private static bool IsFixFileLogDisabled()
+    {
+        var value = Environment.GetEnvironmentVariable("FIX_DISABLE_FILE_LOG");
+        return string.Equals(value, "1", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
     }
 }

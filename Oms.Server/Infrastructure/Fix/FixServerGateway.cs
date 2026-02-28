@@ -19,7 +19,7 @@ public sealed class FixServerGateway(IOrderBook store, ILogger<FixServerGateway>
             this,
             new MemoryStoreFactory(),
             settings,
-            new FileLogFactory(settings),
+            CreateLogFactory(settings),
             new DefaultMessageFactory());
 
         _acceptor.Start();
@@ -103,5 +103,22 @@ public sealed class FixServerGateway(IOrderBook store, ILogger<FixServerGateway>
         report.SetField(new ClOrdID(clOrdId));
         report.SetField(new Text(text));
         Session.SendToTarget(report, sessionID);
+    }
+
+    private static ILogFactory CreateLogFactory(SessionSettings settings)
+    {
+        if (IsFixFileLogDisabled())
+        {
+            return new NullLogFactory();
+        }
+
+        return new FileLogFactory(settings);
+    }
+
+    private static bool IsFixFileLogDisabled()
+    {
+        var value = Environment.GetEnvironmentVariable("FIX_DISABLE_FILE_LOG");
+        return string.Equals(value, "1", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
     }
 }
